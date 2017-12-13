@@ -9,6 +9,7 @@ defmodule Sokrat.Models.Revision do
     field :server, :string
     field :branch, :string
     field :revision, :string
+    field :status, RevisionServerStatus
     field :deployed_at, :naive_datetime
 
     belongs_to :application, Application

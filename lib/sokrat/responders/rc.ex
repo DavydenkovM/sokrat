@@ -67,9 +67,16 @@ defmodule Sokrat.Responders.RC do
     |> Timex.format!("%Y-%m-%d %H:%M", :strftime)
 
     %{
-      "title": revision.server,
+      "title": "#{revision.server} [#{revision.status |> format_status}]",
       "value": "#{revision.branch}\n #{deployed_at}",
       "short": true
     }
+  end
+
+  defp format_status(:reserved) do
+    "Reserved"
+  end
+  defp format_status(p) do
+    "Empty"
   end
 end
