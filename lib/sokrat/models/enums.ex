@@ -1,2 +1,2 @@
 import EctoEnum
-defenum RevisionServerStatus, empty: 0, reserved: 1
+defenum RevisionServerStatus, available: 0, reserved: 1

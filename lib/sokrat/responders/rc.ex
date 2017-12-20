@@ -9,9 +9,39 @@ defmodule Sokrat.Responders.RC do
   use Timex
 
   @usage """
+  hedwig up rc101 - Command to show that particular staging server reserved
+  """
+  respond ~r/up\s(?<server_name>[a-z\d]*)$/i, msg, state do
+    key = msg.matches["server_name"]
+    slack_username_id = msg.user.id
+
+    from(a in Models.Revision, where: a.server == ^key)
+    |> Repo.update_all(set: [slack_username_id: slack_username_id, status: :reserved])
+
+    respond_to_rc(msg)
+  end
+
+  @usage """
+  hedwig down rc101 - Command to show that particular staging server available
+  """
+  respond ~r/down\s(?<server_name>[a-z\d]*)$/i, msg, state do
+    key = msg.matches["server_name"]
+    slack_username_id = msg.user.id
+
+    from(a in Models.Revision, where: a.server == ^key)
+    |> Repo.update_all(set: [slack_username_id: nil, status: :available])
+
+    respond_to_rc(msg)
+  end
+
+  @usage """
   hedwig rc - Shows latest deployed branches.
   """
   respond ~r/rc$/i, msg do
+    respond_to_rc(msg)
+  end
+
+  defp respond_to_rc(msg) do
     Repo.all(Models.Application)
     |> Enum.each(&send_revisions(&1, msg.room))
   end
@@ -67,16 +97,23 @@ defmodule Sokrat.Responders.RC do
     |> Timex.format!("%Y-%m-%d %H:%M", :strftime)
 
     %{
-      "title": "#{revision.server} [#{revision.status |> format_status}]",
-      "value": "#{revision.branch}\n #{deployed_at}",
+      "title": "#{revision.server} [#{revision.status |> format_status}] ",
+      "value": "#{format_value(revision.slack_username_id)}\n #{revision.branch}\n #{deployed_at}",
       "short": true
     }
+  end
+
+  defp format_value(_slack_username_id = nil) do
+    ""
+  end
+  defp format_value(slack_username_id) do
+    "<@#{slack_username_id}>"
   end
 
   defp format_status(:reserved) do
     "Reserved"
   end
   defp format_status(p) do
-    "Empty"
+    "Available"
   end
 end

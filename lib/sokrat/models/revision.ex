@@ -9,6 +9,7 @@ defmodule Sokrat.Models.Revision do
     field :server, :string
     field :branch, :string
     field :revision, :string
+    field :slack_username_id, :string
     field :status, RevisionServerStatus
     field :deployed_at, :naive_datetime
 
