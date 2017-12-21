@@ -1,0 +1,22 @@
+version: '3'
+services:
+  bot:
+    build: .
+    image: netology/sokratbot
+    command: ["sh", "docker-entrypoint.sh", "5432"]
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+
+  db:
+    image: postgres
+    environment:
+      - POSTGRES_USER=davydenkovm
+      - POSTGRES_PASSWORD=123123
+      - POSTGRES_DB=sokrat_db
+    volumes:
+      - sokrat_db:/var/lib/postgresql/data
+
+volumes:
+  sokrat_db:

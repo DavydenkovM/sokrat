@@ -19,10 +19,11 @@ config :sokrat, Sokrat.Repo,
   adapter: Ecto.Adapters.Postgres,
   database: System.get_env("DB_DATABASE"),
   username: System.get_env("DB_USERNAME"),
-  password: System.get_env("DB_PASSWORD")
+  password: System.get_env("DB_PASSWORD"),
+  hostname: System.get_env("DB_HOSTNAME")
 
 config :plug,
-  port: 8000
+  port: System.get_env("PORT") |> String.to_integer
 
 # This configuration is loaded before any dependency and is restricted
 # to this project. If another project depends on this project, this
