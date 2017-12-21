@@ -21,3 +21,4 @@ erl_crash.dump
 
 .env
 *.log
+.DS_Store
