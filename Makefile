@@ -16,8 +16,8 @@ logs:
 
 # bash:
 # 	COMPOSE_PROJECT_NAME=$(PROJECT_NAME) docker-compose run bot bash
-# rc:
-# 	COMPOSE_PROJECT_NAME=$(PROJECT_NAME) docker-compose run bot bin/rails c
+rc:
+	COMPOSE_PROJECT_NAME=$(PROJECT_NAME) docker-compose run bot iex -S mix
 
 # wipe:
 # 	docker volume rm $(docker volume ls -q)

@@ -8,28 +8,62 @@ defmodule Sokrat.Responders.RC do
   use Hedwig.Responder
   use Timex
 
+
   @usage """
-  hedwig up rc101 - Command to show that particular staging server reserved
+  hedwig up rc101 <app> - command to reserve particular server for particular app
+                    Available options are: rails, php, js.
+  """
+  respond ~r/up\s(?<server_name>[a-z\d]*)\s(?<app_name>[a-z\d]*)$/i, msg, state do
+    server_name = msg.matches["server_name"]
+    slack_username_id = msg.user.id
+    app_name = msg.matches["app_name"]
+    app = Repo.one(from a in Models.Application, where: a.key == ^app_name)
+
+    from(a in Models.Revision, where: a.server == ^server_name and a.application_id == ^app.id)
+    |> update_revisions_status(:reserved, slack_username_id)
+
+    respond_to_rc(msg)
+  end
+
+  @usage """
+  hedwig up rc101 - command to reserve particular server for all available apps
   """
   respond ~r/up\s(?<server_name>[a-z\d]*)$/i, msg, state do
     key = msg.matches["server_name"]
     slack_username_id = msg.user.id
 
     from(a in Models.Revision, where: a.server == ^key)
-    |> Repo.update_all(set: [slack_username_id: slack_username_id, status: :reserved])
+    |> update_revisions_status(:reserved, slack_username_id)
+
+    respond_to_rc(msg)
+  end
+
+
+  @usage """
+  hedwig down rc101 <app> - command to release particular server for particular app (dismiss)
+                    Available options are: rails, php, js.
+  """
+  respond ~r/down\s(?<server_name>[a-z\d]*)\s(?<app_name>[a-z\d]*)$/i, msg, state do
+    server_name = msg.matches["server_name"]
+    slack_username_id = msg.user.id
+    app_name = msg.matches["app_name"]
+    app = Repo.one(from a in Models.Application, where: a.key == ^app_name)
+
+    from(a in Models.Revision, where: a.server == ^server_name and a.application_id == ^app.id)
+    |> update_revisions_status(:available, nil)
 
     respond_to_rc(msg)
   end
 
   @usage """
-  hedwig down rc101 - Command to show that particular staging server available
+  hedwig down rc101 - command to release particular server for all available apps (dismiss)
   """
   respond ~r/down\s(?<server_name>[a-z\d]*)$/i, msg, state do
     key = msg.matches["server_name"]
     slack_username_id = msg.user.id
 
     from(a in Models.Revision, where: a.server == ^key)
-    |> Repo.update_all(set: [slack_username_id: nil, status: :available])
+    |> update_revisions_status(:available, nil)
 
     respond_to_rc(msg)
   end
@@ -39,6 +73,11 @@ defmodule Sokrat.Responders.RC do
   """
   respond ~r/rc$/i, msg do
     respond_to_rc(msg)
+  end
+
+  defp update_revisions_status(query, status, slack_username_id) do
+    query
+    |> Repo.update_all(set: [slack_username_id: slack_username_id, status: status])
   end
 
   defp respond_to_rc(msg) do
