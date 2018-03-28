@@ -45,7 +45,6 @@ defmodule Sokrat.Responders.RC do
   """
   respond ~r/down\s(?<server_name>[a-z\d]*)\s(?<app_name>[a-z\d]*)$/i, msg, state do
     server_name = msg.matches["server_name"]
-    slack_username_id = msg.user.id
     app_name = msg.matches["app_name"]
     app = Repo.one(from a in Models.Application, where: a.key == ^app_name)
 
@@ -60,7 +59,6 @@ defmodule Sokrat.Responders.RC do
   """
   respond ~r/down\s(?<server_name>[a-z\d]*)$/i, msg, state do
     key = msg.matches["server_name"]
-    slack_username_id = msg.user.id
 
     from(a in Models.Revision, where: a.server == ^key)
     |> update_revisions_status(:available, nil)
