@@ -3,7 +3,7 @@ services:
   bot:
     build: .
     image: netology/sokratbot
-    command: ["sh", "docker-entrypoint.sh", "5433"]
+    command: ["sh", "docker-entrypoint.sh", "5432"]
     depends_on:
       - db
     ports:
@@ -17,10 +17,6 @@ services:
       - POSTGRES_DB=sokrat_db
     volumes:
       - sokrat_db:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
-    expose:
-      - "5433"
 
 volumes:
   sokrat_db:
