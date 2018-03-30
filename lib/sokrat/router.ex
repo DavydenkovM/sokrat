@@ -1,6 +1,7 @@
 defmodule Sokrat.Router do
-  alias Sokrat.{Slack, Repo, Models.Application, Models.ConflictUser, Models.Revision}
-  import Ecto.Query, only: [select: 3]
+  alias Sokrat.{Slack, Repo, Models.Application, Models.ConflictUser, Models.Revision, Responders.RC}
+  import Ecto.Query, only: [select: 3, from: 2]
+  import RevisionServerStatus
   use Plug.Router
 
   plug Plug.Logger
@@ -49,6 +50,102 @@ defmodule Sokrat.Router do
            notify_about_conflict(user, params)
            send_resp(conn, 200, "")
        end
+  end
+
+  post "/slash-commands/status" do
+    params = conn.body_params
+
+    Repo.all(Application)
+    |> Enum.each(&RC.send_revisions_ephemeral(&1, params["channel_id"], params["user_id"]))
+
+    send_resp(conn, 200, "")
+  end
+
+  post "/slash-commands/status/:app_key" do
+    params = conn.body_params
+
+    app = Repo.get_by!(Application, key: app_key)
+    RC.send_revisions_ephemeral(app, params["channel_id"], params["user_id"])
+
+    send_resp(conn, 200, "")
+  end
+
+  post "/slash-commands/status-public" do
+    params = conn.body_params
+
+    Repo.all(Application)
+    |> Enum.each(&RC.send_revisions(&1, params["channel_id"]))
+
+    send_resp(conn, 200, "")
+  end
+
+  post "/slash-commands/status-public/:app_key" do
+    params = conn.body_params
+
+    app = Repo.get_by!(Application, key: app_key)
+    RC.send_revisions(app, params["channel_id"])
+
+    send_resp(conn, 200, "")
+  end
+
+#  post "/rc_status" do
+#    params = conn.body_params
+#
+#    channel_id = params["channel_id"]
+#    user_id = params["user_id"]
+#    text = params["text"]
+#
+#    if text == "public" do
+#      Repo.all(Application)
+#      |> Enum.each(&RC.send_revisions(&1, channel_id))
+#    else
+#      Repo.all(Application)
+#      |> Enum.each(&RC.send_revisions_ephemeral(&1, channel_id, user_id))
+#    end
+#
+#    send_resp(conn, 200, "")
+#  end
+
+  post "/rc_actions" do
+    params = conn.body_params
+
+    callback_id = params["callback_id"]
+
+    actions = Map.get(params, "actions", [])
+
+    # Value examples:
+    # "reserve_rc101_rails"
+    # "free_rc102_js"
+    button_value = Enum.at(actions, 0)["value"]
+
+    button_value_params = String.split(button_value, "_")
+    action = Enum.at(button_value_params, 0)
+    server_name = Enum.at(button_value_params, 1)
+    app_key = Enum.at(button_value_params, 2)
+
+    user = Map.get(params, "user", %{})
+    channel = Map.get(params, "channel", %{})
+
+    slack_username_id = user["id"]
+
+    app = Repo.one(from a in Application, where: a.key == ^app_key)
+
+    if action == "reserve" do
+      from(a in Revision, where: a.server == ^server_name and a.application_id == ^app.id)
+      |> RC.update_revisions_status(:reserved, slack_username_id)
+    end
+
+    if action == "free" do
+      from(a in Revision, where: a.server == ^server_name and a.application_id == ^app.id)
+      |> RC.update_revisions_status(:available, nil)
+    end
+
+    if callback_id == "ephemeral" do
+      RC.send_revisions_ephemeral(app, channel["id"], slack_username_id, true, params["response_url"])
+    else
+      RC.send_revisions(app, channel["id"], true, params["message_ts"])
+      send_resp(conn, 200, "")
+    end
   end
 
   match _ do
