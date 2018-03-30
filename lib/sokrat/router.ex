@@ -6,8 +6,8 @@ defmodule Sokrat.Router do
 
   plug Plug.Logger
   plug :match
-  plug Plug.Parsers, parsers: [:json],
-                     pass: ["application/json"],
+  plug Plug.Parsers, parsers: [:json, :urlencoded],
+                     pass: ["application/json", "application/x-www-form-urlencoded"],
                      json_decoder: Poison
   plug :set_resp_content_type
   plug :dispatch
@@ -52,8 +52,15 @@ defmodule Sokrat.Router do
        end
   end
 
+  defp send_revisions(app, %{"channel_id" => channel_id}) do
+    RC.send_revisions(app, channel_id)
+  end
+
   post "/slash-commands/status" do
+    IO.inspect "123123"
     params = conn.body_params
+
+    IO.inspect params
 
     Repo.all(Application)
     |> Enum.each(&RC.send_revisions_ephemeral(&1, params["channel_id"], params["user_id"]))
@@ -63,6 +70,8 @@ defmodule Sokrat.Router do
 
   post "/slash-commands/status/:app_key" do
     params = conn.body_params
+
+    IO.inspect params
 
     app = Repo.get_by!(Application, key: app_key)
     RC.send_revisions_ephemeral(app, params["channel_id"], params["user_id"])
@@ -74,14 +83,14 @@ defmodule Sokrat.Router do
     params = conn.body_params
 
     Repo.all(Application)
-    |> Enum.each(&RC.send_revisions(&1, params["channel_id"]))
+    |> Enum.each(&send_revisions(&1, params))
 
     send_resp(conn, 200, "")
   end
 
   post "/slash-commands/status-public/:app_key" do
     params = conn.body_params
-
+    IO.inspect params
     app = Repo.get_by!(Application, key: app_key)
     RC.send_revisions(app, params["channel_id"])
 

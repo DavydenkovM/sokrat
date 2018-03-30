@@ -12,7 +12,10 @@ config :sokrat, Sokrat.Robot,
     {Hedwig.Responders.Ping, []},
     {Sokrat.Responders.RC, []},
     {Sokrat.Responders.Conflict, []}
-  ]
+  ],
+  http: [port: {:system, "PORT"}],
+  url: [scheme: "https", host: System.get_env("HOST"), port: 9443],
+  force_ssl: [rewrite_on: [:x_forwarded_proto]]
 
 config :sokrat, ecto_repos: [Sokrat.Repo]
 config :sokrat, Sokrat.Repo,

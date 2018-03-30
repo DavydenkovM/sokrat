@@ -34,4 +34,6 @@ RUN apk add --no-cache curl make gcc g++ python linux-headers binutils-gold gnup
 RUN mkdir /app
 WORKDIR /app
 COPY . .
-RUN . ./.env && export $(cut -d= -f1 .env) && mix deps.get && mix compile
+
+RUN . ./.env && export $(cut -d= -f1 .env) && mix deps.get 
+RUN . ./.env && export $(cut -d= -f1 .env) && mix compile
