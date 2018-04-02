@@ -116,7 +116,9 @@ defmodule Sokrat.Router do
 #  end
 
   post "/rc_actions" do
-    params = conn.body_params
+    params = Poison.decode!(conn.body_params["payload"])
+
+    IO.inspect params
 
     callback_id = params["callback_id"]
 
@@ -125,9 +127,15 @@ defmodule Sokrat.Router do
     # Value examples:
     # "reserve_rc101_rails"
     # "free_rc102_js"
-    button_value = Enum.at(actions, 0)["value"]
+    #button_value = Enum.at(actions, 0)["value"]
 
-    button_value_params = String.split(button_value, "_")
+    a = Enum.at(actions, 0)
+    b = a["selected_options"]
+    c = Enum.at(b, 0)
+
+    button_value = c["value"]
+
+    button_value_params = String.split(button_value, "___")
     action = Enum.at(button_value_params, 0)
     server_name = Enum.at(button_value_params, 1)
     app_key = Enum.at(button_value_params, 2)
@@ -151,6 +159,7 @@ defmodule Sokrat.Router do
 
     if callback_id == "ephemeral" do
       RC.send_revisions_ephemeral(app, channel["id"], slack_username_id, true, params["response_url"])
+      send_resp(conn, 200, "")
     else
       RC.send_revisions(app, channel["id"], true, params["message_ts"])
       send_resp(conn, 200, "")
@@ -167,8 +176,10 @@ defmodule Sokrat.Router do
   end
 
   defp create_revision(application, params) do
-    revision = Ecto.build_assoc(application, :revisions, deployed_at: NaiveDateTime.utc_now)
-    changeset = Revision.changeset(revision, params)
+    last_revision = Repo.one(from a in Revision, where: a.application_id == ^application.id and a.server == ^params["server"], order_by: [desc: a.deployed_at], limit: 1)
+
+    new_revision = Ecto.build_assoc(application, :revisions, deployed_at: NaiveDateTime.utc_now, status: last_revision.status, slack_username_id: last_revision.slack_username_id)
+    changeset = Revision.changeset(new_revision, params)
     Repo.insert(changeset)
   end
 

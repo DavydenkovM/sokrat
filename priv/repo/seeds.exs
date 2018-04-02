@@ -3,9 +3,9 @@ defmodule Sokrat.Seeder do
 
   def applications do
     Repo.insert_all(Models.Application, [
-      [key: "rails", name: "Ruby on Rails"],
-      [key: "php",   name: "PHP"],
-      [key: "js",    name: "JavaScript"]
+      [key: "rails", name: ":ruby: Ruby on Rails"],
+      [key: "php",   name: ":php: PHP"],
+      [key: "js",    name: ":js: JavaScript"]
     ])
   end
 

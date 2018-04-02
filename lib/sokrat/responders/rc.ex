@@ -132,10 +132,12 @@ defmodule Sokrat.Responders.RC do
     revisions = revisions_list(app)
 
     if replace_original == true do
-      Keyword.merge(message_opts(app, revisions), [channel: room, user: user_id, response_url: response_url, replace_original: true])
-      |> Slack.update_ephemeral_message
+      #Keyword.merge(message_opts(app, revisions, true), [channel: room, user: user_id, response_url: response_url, replace_original: true])
+      #|> Slack.update_ephemeral_message
+
+      Slack.update_ephemeral_message(response_url, Keyword.merge(message_opts(app, revisions, true, true), [channel: room, user: user_id, replace_original: true, response_type: "ephemeral"]))
     else
-      Keyword.merge(message_opts(app, revisions), [channel: room, user: user_id])
+      Keyword.merge(message_opts(app, revisions, true), [channel: room, user: user_id, response_type: "ephemeral"])
       |> Slack.chat_ephemeral_message
     end
   end
@@ -159,11 +161,28 @@ defmodule Sokrat.Responders.RC do
   end
 
   defp message_opts(app, revisions) do
-    message_opts(app, revisions, false)
+    message_opts(app, revisions, false, false)
   end
 
   defp message_opts(app, revisions, ephemeral) do
+    message_opts(app, revisions, ephemeral, false)
+  end
+
+  defp message_opts(app, revisions, ephemeral, replace_original) do
     callback_id = if ephemeral == true do "ephemeral" else "common" end
+
+    actions = Enum.map(revisions, fn revisiion -> %{ "name": "rc_action", "text": rc_button_text(revisiion), "type": "button", "style": rc_button_style(revisiion), "value": rc_button_value(app, revisiion) } end)
+
+    options = actions = Enum.map(revisions, fn revision -> %{ "text": rc_button_text(revision), "value": rc_button_value(app, revision) } end)
+
+    actions = [
+      %{
+        "name": "rc_action",
+        "text": "What do you want?",
+        "type": "select",
+        "options": options
+      }
+    ]
 
     attachments = [
       %{
@@ -172,39 +191,15 @@ defmodule Sokrat.Responders.RC do
         "fields": Enum.map(revisions, fn revisiion -> revision_info(app, revisiion) end),
         "callback_id": callback_id,
         #"replace_original": true,
-        "actions": [
-          %{
-            "name": "rc_action",
-            "text": rc_button_text(Enum.at(revisions, 0)),
-            "type": "button",
-            "style": rc_button_style(Enum.at(revisions, 0)),
-            "value": rc_button_value(app, Enum.at(revisions, 0))
-          },
-          %{
-            "name": "rc_action",
-            "text": rc_button_text(Enum.at(revisions, 1)),
-            "type": "button",
-            "style": rc_button_style(Enum.at(revisions, 1)),
-            "value": rc_button_value(app, Enum.at(revisions, 1))
-          },
-          %{
-            "name": "rc_action",
-            "text": rc_button_text(Enum.at(revisions, 2)),
-            "type": "button",
-            "style": rc_button_style(Enum.at(revisions, 2)),
-            "value": rc_button_value(app, Enum.at(revisions, 2))
-          },
-          %{
-            "name": "rc_action",
-            "text": rc_button_text(Enum.at(revisions, 3)),
-            "type": "button",
-            "style": rc_button_style(Enum.at(revisions, 3)),
-            "value": rc_button_value(app, Enum.at(revisions, 3))
-          }
-        ]
+        "actions": actions
       }
     ]
-    [attachments: Poison.encode!(attachments)]
+
+    if ephemeral == true and replace_original == true  do 
+      [attachments: attachments] 
+    else 
+      [attachments: Poison.encode!(attachments)]
+    end
   end
 
   defp rc_button_text(revision) do
@@ -225,9 +220,9 @@ defmodule Sokrat.Responders.RC do
 
   defp rc_button_value(app, revision) do
     if revision.status == :reserved do
-      "free_#{revision.server}_#{app.key}"
+      "free___#{revision.server}___#{app.key}"
     else
-      "reserve_#{revision.server}_#{app.key}"
+      "reserve___#{revision.server}___#{app.key}"
     end
   end
 
@@ -237,7 +232,7 @@ defmodule Sokrat.Responders.RC do
     |> Timex.format!("%Y-%m-%d %H:%M", :strftime)
 
     %{
-      "title": "#{revision.server} [#{revision.status |> format_status}]",
+      "title": "#{revision.server} #{revision.status |> format_status}",
       "value": "#{format_value(revision.slack_username_id)}\n #{revision.branch}\n #{deployed_at}",
       "short": true
     }
@@ -251,9 +246,9 @@ defmodule Sokrat.Responders.RC do
   end
 
   defp format_status(:reserved) do
-    "Reserved"
+    "[Reserved] :name_badge:"
   end
   defp format_status(p) do
-    "Available"
+    "[Available] :white_check_mark:"
   end
 end

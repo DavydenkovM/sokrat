@@ -19,12 +19,22 @@ defmodule Sokrat.Slack do
     HTTPoison.post!("#{@url}/api/chat.postEphemeral", {:form, args})
   end
 
-  def update_ephemeral_message(args \\ []) do
+  def update_ephemeral_message(response_url, args \\ []) do
     args = Keyword.merge(params(), args)
-    IO.inspect args
-    respose_url = args["response_url"]
-    #HTTPoison.post!("#{@url}/api/chat.update", {:form, args})
-    HTTPoison.post!("#{respose_url}", {:form, args})
+
+    body = Poison.encode!(%{
+      "token": args[:token],
+      "as_user": true,
+      "attachments": args[:attachments],
+      "channel": args[:channel],
+      "user": args[:user],
+      "replace_original": true,
+      "response_type": "ephemeral"
+    })
+
+    headers = [{"Content-type", "application/json"}]
+
+    HTTPoison.post("#{response_url}", body, headers, [])
   end
 
   defp params do
