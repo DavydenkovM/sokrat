@@ -1,113 +1,21 @@
 defmodule Sokrat.Responders.RC do
-  @moduledoc """
-  Lists latest branches deployed on rc servers.
-  """
-
   alias Sokrat.{Repo, Slack, Models}
   import Ecto.Query, only: [from: 2, join: 5, order_by: 3]
   import EctoEnum
   import RevisionServerStatus
-  use Hedwig.Responder
   use Timex
-
-
-#  @usage """
-#  hedwig up rc101 <app> - command to reserve particular server for particular app
-#                    Available options are: rails, php, js.
-#  """
-#  respond ~r/up\s(?<server_name>[a-z\d]*)\s(?<app_name>[a-z\d]*)$/i, msg, state do
-#    server_name = msg.matches["server_name"]
-#    slack_username_id = msg.user.id
-#    app_name = msg.matches["app_name"]
-#    app = Repo.one(from a in Models.Application, where: a.key == ^app_name)
-#
-#    from(a in Models.Revision, where: a.server == ^server_name and a.application_id == ^app.id)
-#    |> update_revisions_status(:reserved, slack_username_id)
-#
-#    respond_to_rc(msg)
-#  end
-
-#  @usage """
-#  hedwig up rc101 - command to reserve particular server for all available apps
-#  """
-#  respond ~r/up\s(?<server_name>[a-z\d]*)$/i, msg, state do
-#    key = msg.matches["server_name"]
-#    slack_username_id = msg.user.id
-#
-#    from(a in Models.Revision, where: a.server == ^key)
-#    |> update_revisions_status(:reserved, slack_username_id)
-#
-#    respond_to_rc(msg)
-#  end
-
-
-#  @usage """
-#  hedwig down rc101 <app> - command to release particular server for particular app (dismiss)
-#                    Available options are: rails, php, js.
-#  """
-#  respond ~r/down\s(?<server_name>[a-z\d]*)\s(?<app_name>[a-z\d]*)$/i, msg, state do
-#    server_name = msg.matches["server_name"]
-#    app_name = msg.matches["app_name"]
-#    app = Repo.one(from a in Models.Application, where: a.key == ^app_name)
-#
-#    from(a in Models.Revision, where: a.server == ^server_name and a.application_id == ^app.id)
-#    |> update_revisions_status(:available, nil)
-#
-#    respond_to_rc(msg)
-#  end
-
-#  @usage """
-#  hedwig down rc101 - command to release particular server for all available apps (dismiss)
-#  """
-#  respond ~r/down\s(?<server_name>[a-z\d]*)$/i, msg, state do
-#    key = msg.matches["server_name"]
-#
-#    from(a in Models.Revision, where: a.server == ^key)
-#    |> update_revisions_status(:available, nil)
-#
-#    respond_to_rc(msg)
-#  end
-
-#  @usage """
-#  hedwig rc <app> - Shows latest deployed branches for particular <app>.
-#                    Available options are: rails, php, js.
-#  """
-#  respond ~r/rc\s(?<app>[a-z]*)$/i, msg do
-#    key = msg.matches["app"]
-#    Repo.all(from a in Models.Application, where: a.key == ^key)
-#    |> Enum.each(&send_revisions(&1, msg.room, false, ''))
-#  end
-
-#  @usage """
-#  hedwig rc - Shows latest deployed branches.
-#  """
-#  respond ~r/rc$/i, msg do
-#    respond_to_rc(msg)
-#  end
 
   def update_revisions_status(query, status, slack_username_id) do
     query
     |> Repo.update_all(set: [slack_username_id: slack_username_id, status: status])
   end
 
-#  def respond_to_rc(msg) do
-#    Repo.all(Models.Application)
-#    |> Enum.each(&send_revisions(&1, msg.room, msg.replace_original))
-#  end
-
-#  def respond_to_rc_ephemeral(msg) do
-#    Repo.all(Models.Application)
-#    |> Enum.each(&send_revisions_ephemeral(&1, msg.room, msg.user))
-#  end
-
   def send_revisions(app, room) do
     send_revisions(app, room, false)
   end
-
   def send_revisions(app, room, replace_original) do
     send_revisions(app, room, replace_original, "")
   end
-
   def send_revisions(app, room, replace_original, timestamp) do
     revisions = revisions_list(app)
 
@@ -123,11 +31,9 @@ defmodule Sokrat.Responders.RC do
   def send_revisions_ephemeral(app, room, user_id) do
     send_revisions_ephemeral(app, room, user_id, false)
   end
-
   def send_revisions_ephemeral(app, room, user_id, replace_original) do
     send_revisions_ephemeral(app, room, user_id, replace_original, "")
   end
-
   def send_revisions_ephemeral(app, room, user_id, replace_original, response_url) do
     revisions = revisions_list(app)
 
