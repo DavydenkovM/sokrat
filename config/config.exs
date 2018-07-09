@@ -10,6 +10,10 @@ config :sokrat, Sokrat.Robot,
   responders: [
     {Hedwig.Responders.Help, []},
     {Hedwig.Responders.Ping, []},
+    # Actually RC is just a module
+    # and should be excluded from responders 
+    # (becuase in has no `responds` functions)
+    # but this should be tested and for now it is here
     {Sokrat.Responders.RC, []},
     {Sokrat.Responders.Conflict, []}
   ]
